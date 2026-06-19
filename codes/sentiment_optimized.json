@@ -1,0 +1,55 @@
+{
+  "classify": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "review": "This movie was absolutely amazing!",
+        "sentiment": "positive"
+      },
+      {
+        "augmented": true,
+        "review": "Total waste of time, very boring.",
+        "sentiment": "negative"
+      },
+      {
+        "review": "Couldn't even finish watching it.",
+        "sentiment": "negative"
+      },
+      {
+        "review": "I loved every minute of it!",
+        "sentiment": "positive"
+      },
+      {
+        "review": "A masterpiece, highly recommended.",
+        "sentiment": "positive"
+      },
+      {
+        "review": "Terrible acting and awful plot.",
+        "sentiment": "negative"
+      }
+    ],
+    "signature": {
+      "instructions": "Classify the sentiment of a movie review.",
+      "fields": [
+        {
+          "prefix": "Review:",
+          "description": "${review}"
+        },
+        {
+          "prefix": "Sentiment:",
+          "description": "either 'positive' or 'negative'"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.2.1",
+      "cloudpickle": "3.1"
+    }
+  }
+}
