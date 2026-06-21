@@ -8,6 +8,7 @@ dependencies = [
     "anthropic>=0.105.2",
     "dspy>=2.6.27",
     "fastapi>=0.128.8",
+    "fpdf2>=2.8.4",
     "langchain>=0.3.30",
     "langchain-openai>=0.3.35",
     "matplotlib>=3.9.4",
