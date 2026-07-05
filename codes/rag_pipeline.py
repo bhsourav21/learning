@@ -24,8 +24,8 @@ class RAGPipeline:
         self.index = Pinecone().Index(index_name)
 
         self.splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
+            chunk_size=1024,
+            chunk_overlap=100,
             add_start_index=True,
         )
 
