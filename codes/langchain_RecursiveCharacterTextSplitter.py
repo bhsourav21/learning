@@ -41,7 +41,7 @@ chunks_1000 = splitter_1000.split_documents(pages)
 
 with open(output_path, 'w', encoding='utf-8') as f:
     write_chunks(f, chunks_500, 500, 50)
-    write_chunks(f, chunks_200, 200, 50)
-    write_chunks(f, chunks_1000, 1000, 50)
+    write_chunks(f, chunks_200, 200, 20)
+    write_chunks(f, chunks_1000, 1000, 100)
 
 print(f"Output written to {output_path}")

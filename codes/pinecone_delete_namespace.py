@@ -4,7 +4,7 @@ from pinecone import Pinecone
 load_dotenv()
 
 INDEX_NAME = "bhsourav17-pinecone-index"
-NAMESPACE  = "AI_ML_DS_Roles_Comparison.pdf"
+NAMESPACE  = "AI_Ecosystem_4Layer_Stack.pdf"
 
 pc    = Pinecone()
 index = pc.Index(INDEX_NAME)
