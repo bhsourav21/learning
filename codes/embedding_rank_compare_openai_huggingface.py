@@ -7,7 +7,7 @@ load_dotenv()
 
 client = OpenAI()
 
-query = "Give me some stats on sports"
+query = "Name some of great batters in cricket"
 
 texts = [
     "Sachin scored 108 not out vs England while Chansing mor ethan 350 in Chennai",

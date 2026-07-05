@@ -364,7 +364,7 @@ page_content='mental model from a second perspective.
  AI Engineer Roadmap · Sourav Bhattacharya · Month 1, Week 1, Task 1 · Based on: codebasics (youtube.com/watch?v=_kMaPZE05Yc) and Aishwarya
  Srinivasan (youtube.com/watch?v=KtHdbzChVWo)' metadata={'producer': 'ReportLab PDF Library - (opensource)', 'creator': '(unspecified)', 'creationdate': '2026-05-23T22:24:24+00:00', 'author': 'Sourav Bhattacharya', 'keywords': '', 'moddate': '2026-05-23T22:24:24+00:00', 'subject': '(unspecified)', 'title': 'AI Ecosystem: The 4-Layer Stack', 'trapped': '/False', 'source': '/Users/souravbhattacharya/Documents/Code_Projects/AI_study/learning/docs/AI_Ecosystem_4Layer_Stack.pdf', 'total_pages': 6, 'page': 5, 'page_label': '6', 'start_index': 1636}
 
-chunk size 200, chunk overlap 50
+chunk size 200, chunk overlap 20
 ====================================
 chunk#1
 ---------------
@@ -929,7 +929,7 @@ chunk#73
 ---------------
 page_content='Srinivasan (youtube.com/watch?v=KtHdbzChVWo)' metadata={'producer': 'ReportLab PDF Library - (opensource)', 'creator': '(unspecified)', 'creationdate': '2026-05-23T22:24:24+00:00', 'author': 'Sourav Bhattacharya', 'keywords': '', 'moddate': '2026-05-23T22:24:24+00:00', 'subject': '(unspecified)', 'title': 'AI Ecosystem: The 4-Layer Stack', 'trapped': '/False', 'source': '/Users/souravbhattacharya/Documents/Code_Projects/AI_study/learning/docs/AI_Ecosystem_4Layer_Stack.pdf', 'total_pages': 6, 'page': 5, 'page_label': '6', 'start_index': 1817}
 
-chunk size 1000, chunk overlap 50
+chunk size 1000, chunk overlap 100
 ====================================
 chunk#1
 ---------------
