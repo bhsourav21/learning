@@ -1,0 +1,56 @@
+[
+  {
+    "query": "What are the working hours at Acme?",
+    "namespace": "acme",
+    "expected_category": "hr_policy",
+    "top1_score_before": 0.1371,
+    "top1_score_after": 0.2056,
+    "category_purity_top4_before": 2,
+    "category_purity_top4_after": 2
+  },
+  {
+    "query": "What is the annual leave policy at Acme?",
+    "namespace": "acme",
+    "expected_category": "hr_policy",
+    "top1_score_before": 0.5575,
+    "top1_score_after": 0.4891,
+    "category_purity_top4_before": 1,
+    "category_purity_top4_after": 2
+  },
+  {
+    "query": "What is the primary business model of Globex?",
+    "namespace": "globex",
+    "expected_category": "business_model",
+    "top1_score_before": 0.2477,
+    "top1_score_after": 0.192,
+    "category_purity_top4_before": 2,
+    "category_purity_top4_after": 1
+  },
+  {
+    "query": "What laptops are issued to Hooli employees?",
+    "namespace": "hooli",
+    "expected_category": "it_infrastructure",
+    "top1_score_before": 0.1446,
+    "top1_score_after": 0.1524,
+    "category_purity_top4_before": 1,
+    "category_purity_top4_after": 1
+  },
+  {
+    "query": "What is Initech's revenue model?",
+    "namespace": "initech",
+    "expected_category": "business_model",
+    "top1_score_before": 0.3471,
+    "top1_score_after": 0.2525,
+    "category_purity_top4_before": 3,
+    "category_purity_top4_after": 2
+  },
+  {
+    "query": "What is Acme Corp's revenue?",
+    "namespace": "acme",
+    "expected_category": null,
+    "top1_score_before": 0.2809,
+    "top1_score_after": 0.2458,
+    "category_purity_top4_before": null,
+    "category_purity_top4_after": null
+  }
+]
