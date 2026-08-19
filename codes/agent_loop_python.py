@@ -117,7 +117,7 @@ def call_llm_with_retry(messages):
         except Exception as e:
             last_err = e
             wait = 2 ** attempt # exponential backoff
-            print(f"  [retry] LLM call failed ({e}; retrying in {wait}s...")
+            print(f"  [retry] LLM call failed ({e}: retrying in {wait}s...")
             time.sleep(wait)
     raise RuntimeError(f"LLM call failed after {MAX_LLM_RETRIES} attempts: {last_err}")
 
