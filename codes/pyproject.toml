@@ -18,6 +18,7 @@ dependencies = [
     "langchain-experimental>=0.3.4",
     "langchain-openai>=0.3.35",
     "langchain-pinecone>=0.2.12",
+    "langgraph>=0.6.11",
     "matplotlib>=3.9.4",
     "numpy>=2.0.2",
     "openai>=2.38.0",
