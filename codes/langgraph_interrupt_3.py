@@ -13,8 +13,8 @@ load_dotenv()
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
 
-MAX_ITERATIONS = 2
-    
+MAX_ITERATIONS = 5
+
 class State(TypedDict):
     messages: Annotated[list, add_messages]
     tool_results: Annotated[list[str], operator.add]
@@ -43,6 +43,7 @@ def run_tool_step(state: State) -> State:
             "question": f"About to run research step {step_number}/{MAX_ITERATIONS} following '{state["plan"]}'. Continue?"
         }
     )
+    print('hi1')
     if not approved:
         return {"final_answer": "Stopped by human before research finished."}
 
@@ -100,8 +101,10 @@ while "__interrupt__" in out:
     out = app.invoke(Command(resume=True), config)
 print(f"finished: {out['final_answer']}\n")
 
+
 print("=== run 2: interrupt again, then simulate a process restart before resuming ===")
 out2 = app.invoke(initial_state, config)
+print(f"out2['__interrupt__'][0]:{out2['__interrupt__'][0]}")
 print(f"paused -- {out2['__interrupt__'][0].value['question']}")
 
 # A real process restart wipes Python's heap; a *new* InMemorySaver reproduces
@@ -126,3 +129,36 @@ print(
     "Surviving a real restart needs a persistent checkpointer "
     "(e.g. SqliteSaver/PostgresSaver) pointed at the same DB file/connection."
 )
+
+
+
+# Question:
+# check the output of @AI_study/learning/codes/langgraph_interrupt_3.py 
+# why it says that [make_plan] missing required state fields: ['plan', 'iteration_count', 'final_answer']. 
+# How does it find other two state fields - messages and tool_results?
+
+# Answer:
+# Confirmed empirically — the raw state make_plan receives after the simulated restart is exactly {'messages': [], 
+# 'tool_results': []}. plan, iteration_count, final_answer aren't just empty, they're absent as keys entirely.
+
+# Here's why: LangGraph builds one internal "channel" per state field, and which channel type it uses depends on 
+# whether the field has a reducer.
+
+# messages (Annotated[list, add_messages]) and tool_results (Annotated[list[str], operator.add]) have a reducer 
+# attached. Reducer-backed channels (BinaryOperatorAggregate) need some starting value to combine future writes 
+# into — so LangGraph seeds them at an empty list before anything is ever written. That's a real, defined value, 
+# so it's present in state.
+# plan, iteration_count, final_answer have no reducer — they're plain LastValue channels, which literally have 
+# no value at all until the first write happens. There's no "empty string" or "zero" default; the channel is 
+# just uninitialized.
+# With fresh_checkpointer, thread "agent_1" has zero history — nothing was ever written to any channel. 
+# Command(resume=True) finds no pending interrupt to resume, so it falls through to a fresh run from START. 
+# But since no initial_state dict was passed either, LangGraph assembles make_plan's input purely from whatever 
+# channels currently hold a value — the two reducer-backed ones (both still [], since even they were never written 
+# to in this fresh checkpointer). The three LastValue fields simply don't exist as keys, which is exactly what 
+# check_state catches.
+
+# So the practical rule this surfaces: fields with a reducer always show up in state (even if empty); plain 
+# scalar fields only exist once something writes to them. That's a real gap in this script too, worth knowing — 
+# plan/iteration_count/final_answer have no safe default the way messages/tool_results do.
+
