@@ -14,7 +14,7 @@ load_dotenv()
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=os.getenv("OPENAI_API_KEY"))
 
 MAX_ITERATIONS = 2
-
+    
 class State(TypedDict):
     messages: Annotated[list, add_messages]
     tool_results: Annotated[list[str], operator.add]
