@@ -13,3 +13,6 @@ wheels/
 .env
 
 .DS_Store
+
+# Planning notes -- working documents, not part of the codebase
+plan/
