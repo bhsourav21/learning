@@ -1,4 +1,4 @@
-"""
+o-mini model """
 External memory: instead of resending the whole transcript, every turn
 (user + assistant) is embedded and upserted into a Pinecone index. On each
 new turn, the user's message is embedded and used to semantically retrieve
