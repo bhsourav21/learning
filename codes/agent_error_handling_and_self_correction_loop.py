@@ -13,6 +13,7 @@ llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=os.getenv("OPENAI_A
 
 MAX_RETRIES = 3      # how many times a *failing* tool call may be retried
 MAX_ITERATIONS = 15  # how many agent turns the run may take, however well things are going
+MAX_VALIDATIONS = 2  # how many times a *finished* answer may be sent back for missing the question
 
 # Deliberately vague docstring: the model has to *discover* the required pair format
 # from the error message instead of reading it off the tool schema. That's what makes
@@ -56,8 +57,15 @@ class State(TypedDict):
     retry_count: int
     iterations: int
     last_error: str
+    validations: int
+    # Doubles as the pass/fail flag for the validation router: "" means the last checked
+    # answer was accepted, anything else is the critique the agent has to act on. Same
+    # idiom as last_error -- the routers stay pure and read the verdict off state.
+    validation_feedback: str
 
-REQUIRED_FIELDS = ("messages", "retry_count", "iterations", "last_error")
+REQUIRED_FIELDS = (
+    "messages", "retry_count", "iterations", "last_error", "validations", "validation_feedback",
+)
 
 def check_state(node_name: str, state: State) -> None:
     """Verifies every node receives the full state shape, not a partial/stale one"""
@@ -123,15 +131,75 @@ def tool_node(state: State) -> State:
         "last_error": latest_error or state["last_error"],
     }
 
-def route_after_agent(state: State) -> Literal["tools", "give_up", "__end__"]:
+class Verdict(TypedDict):
+    """Schema the checker is forced into, so the verdict arrives as a bool the router can
+    branch on rather than prose someone has to string-match for the word 'yes'."""
+    answers_question: Annotated[bool, ..., "True only if the draft answers the question that was asked, in full."]
+    critique: Annotated[str, ..., "If it does not, what is missing or wrong. Addressed to the agent that wrote it. Empty if it does."]
+
+validator = llm.with_structured_output(Verdict)
+
+def validate(state: State) -> State:
+    """Second opinion on a finished answer. The agent decides when it is *done*; this node
+    decides whether it is *responsive*, in a separate LLM call that sees only the original
+    question and the draft. Withholding the tool transcript is the point: a checker that
+    watched three successful tool calls tends to accept whatever came after them, so it
+    would rubber-stamp exactly the answers worth catching."""
+    check_state("validate", state)
+    # The original question, not the latest human turn -- a rejection message from a
+    # previous round is also a HumanMessage, and the answer must be judged against what
+    # was actually asked, not against the last critique.
+    question = next(m.content for m in state["messages"] if isinstance(m, HumanMessage))
+    draft = state["messages"][-1].content
+
+    verdict = validator.invoke(
+        [
+            SystemMessage(
+                content=(
+                    "You check whether a draft answer answers the question that was asked. Judge only "
+                    "that: is every part of the question addressed, with the concrete detail it asked "
+                    "for? Do not rewrite the answer, do not grade its style, and do not reward effort "
+                    "-- a draft that narrates the work it did without stating the result does not "
+                    "answer the question."
+                )
+            ),
+            HumanMessage(content=f"QUESTION:\n{question}\n\nDRAFT ANSWER:\n{draft}"),
+        ]
+    )
+
+    if verdict["answers_question"]:
+        print("[validate] PASS")
+        # Clearing the feedback is what tells route_after_validation to end the run, and it
+        # also matters on a later pass: a stale critique here would end the run at give_up.
+        return {"validation_feedback": ""}
+
+    attempt = state["validations"] + 1
+    print(f"[validate] FAIL (attempt {attempt}/{MAX_VALIDATIONS}) -- {verdict['critique']}")
+    # The critique goes back as a HumanMessage rather than a SystemMessage: it follows an
+    # AIMessage, which is the shape a chat-completions request expects, and the agent reads
+    # it as the user pushing back -- which is what it is.
+    return {
+        "messages": [
+            HumanMessage(
+                content=(
+                    f"ANSWER REJECTED (check {attempt} of {MAX_VALIDATIONS}): {verdict['critique']}\n"
+                    "Answer the original question directly this time. Call the tools again if you need to."
+                )
+            )
+        ],
+        "validations": attempt,
+        "validation_feedback": verdict["critique"],
+    }
+
+def route_after_agent(state: State) -> Literal["tools", "give_up", "validate"]:
     last_message = state["messages"][-1]
     # Both halves guard the same thing: only an AIMessage that actually asked for a tool
     # should reach tool_node. `.tool_calls` is an AIMessage-only attribute, so on a
     # HumanMessage or ToolMessage the bare attribute access would raise AttributeError --
     # the isinstance check short-circuits before that happens. And an AIMessage that just
     # answered in prose has tool_calls == [], which is falsy, so the plain-answer turn
-    # routes to END. Without the second half every agent turn would go to tool_node, which
-    # would then iterate an empty list and hand the model back nothing.
+    # routes to validate. Without the second half every agent turn would go to tool_node,
+    # which would then iterate an empty list and hand the model back nothing.
     if isinstance(last_message, AIMessage) and last_message.tool_calls:
         # Two independent budgets, deliberately checked in two different places.
         # retry_count only moves when a tool *raises*, so it cannot see a run that loops
@@ -141,25 +209,60 @@ def route_after_agent(state: State) -> Literal["tools", "give_up", "__end__"]:
         if state["iterations"] >= MAX_ITERATIONS:
             return "give_up"
         return "tools"
-    # Plain prose answer -- the model is done, so no budget check is needed.
-    return END
+    # Plain prose answer -- the model thinks it is finished. It does not get the last word:
+    # validate re-reads the answer against the original question before the run can end.
+    # No budget check here; validate's own router owns the exit from that loop.
+    return "validate"
 
 def route_after_tools(state: State) -> Literal["agent", "give_up"]:
     # Budget spent -- stop handing the model another chance to call the tool.
     return "give_up" if state["retry_count"] >= MAX_RETRIES else "agent"
 
+def route_after_validation(state: State) -> Literal["agent", "give_up", "__end__"]:
+    if not state["validation_feedback"]:
+        return END
+    # A third budget, for a third failure mode: the answer is wrong rather than the tool.
+    # The turn budget is re-checked here because route_after_agent only tests it on the
+    # tool-call branch -- an agent that keeps producing rejected prose never crosses that
+    # branch, so without this the agent/validate loop would answer to MAX_VALIDATIONS alone.
+    if state["validations"] >= MAX_VALIDATIONS or state["iterations"] >= MAX_ITERATIONS:
+        return "give_up"
+    return "agent"
+
 def give_up(state: State) -> State:
-    """Shared exit for both budgets. Answers with the plain llm -- no tools bound -- so
+    """Shared exit for all three budgets. Answers with the plain llm -- no tools bound -- so
     the model physically cannot emit another tool call, which is what guarantees the
-    graph terminates rather than looping on a broken or unsatisfiable dependency."""
+    # graph terminates rather than looping on a broken or unsatisfiable dependency.
+
+    Its answer goes straight to END, deliberately unvalidated: this node exists because a
+    budget is already spent, and sending its output back to the checker would just build a
+    second loop out of the escape hatch from the first one."""
     check_state("give_up", state)
     if state["retry_count"] >= MAX_RETRIES:
         reason = f"The tool failed {MAX_RETRIES} times; the last error was: {state['last_error']}."
+        instruction = (
+            "Stop trying to use the tool. Tell the user plainly that you could not complete the "
+            "request, and say what went wrong."
+        )
         print(f"[give_up] retry budget spent ({state['retry_count']}/{MAX_RETRIES})")
+    elif state["validation_feedback"]:
+        reason = (
+            f"{state['validations']} of your answers were rejected as not answering the question; "
+            f"the last critique was: {state['validation_feedback']}."
+        )
+        instruction = (
+            "Write the best answer you can now, and state plainly which part of the question you "
+            "were unable to answer."
+        )
+        print(f"[give_up] validation budget spent ({state['validations']}/{MAX_VALIDATIONS})")
     else:
         reason = (
             f"You have used all {MAX_ITERATIONS} allowed turns without reaching an answer. "
             "The tool calls succeeded, but they were not getting you closer to one."
+        )
+        instruction = (
+            "Stop trying to use the tool. Tell the user plainly that you could not complete the "
+            "request, and say what went wrong."
         )
         print(f"[give_up] turn budget spent ({state['iterations']}/{MAX_ITERATIONS})")
 
@@ -185,12 +288,7 @@ def give_up(state: State) -> State:
         state["messages"]
         + cancellations
         + [
-            SystemMessage(
-                content=(
-                    f"{reason} Stop trying to use the tool. Tell the user plainly that you could "
-                    "not complete the request, and say what went wrong."
-                )
-            )
+            SystemMessage(content=f"{reason} {instruction}")
         ]
     )
     return {"messages": cancellations + [response]}
@@ -199,28 +297,40 @@ graph = StateGraph(State)
 graph.add_node("agent", agent)
 graph.add_node("tools", tool_node)
 graph.add_node("give_up", give_up)
+graph.add_node("validate", validate)
 graph.add_edge(START, "agent")
 graph.add_conditional_edges(
-    "agent", route_after_agent, {"tools": "tools", "give_up": "give_up", END: END}
+    "agent", route_after_agent, {"tools": "tools", "give_up": "give_up", "validate": "validate"}
 )
 graph.add_conditional_edges("tools", route_after_tools, {"agent": "agent", "give_up": "give_up"})
+graph.add_conditional_edges(
+    "validate", route_after_validation, {"agent": "agent", "give_up": "give_up", END: END}
+)
 graph.add_edge("give_up", END)
 
 app = graph.compile()
 print(app.get_graph().draw_mermaid())
 
 
-def run(label: str, question: str) -> None:
+def run(label: str, question: str, nudge: str | None = None) -> None:
     print(f"\n=== {label} ===")
+    # `nudge` rigs the *agent* the way the tools above are rigged -- it is only there so one
+    # flow can fail validation on demand. Real runs pass a question and nothing else.
+    seed = ([SystemMessage(content=nudge)] if nudge else []) + [HumanMessage(content=question)]
     result = app.invoke(
         {
-            "messages": [HumanMessage(content=question)],
+            "messages": seed,
             "retry_count": 0,
             "iterations": 0,
             "last_error": "",
+            "validations": 0,
+            "validation_feedback": "",
         }
     )
-    print(f"-- transcript (retry_count={result['retry_count']} iterations={result['iterations']}) --")
+    print(
+        f"-- transcript (retry_count={result['retry_count']} iterations={result['iterations']} "
+        f"validations={result['validations']}) --"
+    )
     for m in result["messages"]:
         content = getattr(m, "content", None)
         calls = getattr(m, "tool_calls", None)
@@ -246,6 +356,23 @@ run(
 )
 
 
+# Flow 4: nothing fails and the agent converges -- it just does not answer the question.
+# The tool call succeeds, the agent stops, and the graph would have ended there before the
+# validation node existed. The nudge makes the first answer omit the number deterministically;
+# the checker sees a draft that describes a conversion without stating one, rejects it, and
+# the critique goes back to the agent as a new turn.
+run(
+    "flow 4: tool succeeds, agent stops, validator sends the answer back",
+    "Convert 40 US dollars to euros. What is the amount in euros?",
+    nudge=(
+        "RIGGED FOR THIS DEMO: your first final answer must say only that you performed the "
+        "conversion and that the tool returned a result. Do not reveal the converted amount in any "
+        "form -- not as digits, not spelled out in words, not rounded or approximated. If you are "
+        "told your answer was rejected, then answer properly, with the number."
+    ),
+)
+
+
 # TWO BUDGETS, TWO FAILURE MODES
 #
 # retry_count and iterations look redundant and are not. retry_count only moves inside
@@ -263,6 +390,35 @@ run(
 # The two live in different routers on purpose. retry_count is checked in
 # route_after_tools, since only a tool call can change it. iterations is checked in
 # route_after_agent, the edge every agent turn crosses whether or not a tool ran.
+#
+#
+# A THIRD BUDGET: THE ANSWER ITSELF
+#
+# Both budgets above watch the *machinery* -- how often a tool threw, how many turns were
+# spent. Neither looks at what the agent finally said, so flow 4 slips past both: one clean
+# tool call, one confident paragraph, retry_count 0, iterations 2. The only thing that
+# catches it is reading the answer back against the question, which is what validate does.
+#
+# Three things make it a check rather than a formality:
+#
+# 1. A separate LLM call, not a second opinion from the same conversation. The agent has
+#    just spent several turns convincing itself; asking it "did you answer?" in the same
+#    thread mostly gets "yes". The checker starts cold.
+# 2. It sees the question and the draft, and not the tool transcript. Successful-looking
+#    tool calls are precisely the thing that makes an unresponsive answer read as fine.
+# 3. Structured output. answers_question is a bool the router branches on. A prose verdict
+#    would have to be string-matched, and "no, this is not quite complete" contains "yes"
+#    about as often as it does not.
+#
+# The loop it opens needs its own bound for the same reason the others do: an agent that
+# cannot answer the question will not start being able to on the fourth try, so
+# MAX_VALIDATIONS caps the rejections and route_after_validation re-checks the turn budget
+# on the way past -- route_after_agent only tests iterations on its tool-call branch, so an
+# agent bouncing between agent and validate never crosses the edge that would stop it.
+#
+# The obvious upgrade, once this shape is clear: give the validator a rubric, or run it on
+# tool *results* rather than the final answer, so a wrong intermediate value is caught while
+# there are still turns left to fix it.
 #
 #
 # Why a hand-written tool node instead of the prebuilt ToolNode?
