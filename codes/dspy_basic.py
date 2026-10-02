@@ -7,6 +7,8 @@ lm = dspy.LM(
 )
 dspy.configure(lm=lm)
 
+dspy.configure_cache(enable_disk_cache=False, enable_memory_cache=False)
+
 qa = dspy.Predict("question -> answer")
 
 result = qa(question="Why is the sky blue at noon but red at sunlight?")
