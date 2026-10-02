@@ -1,19 +1,18 @@
-from dotenv import load_dotenv
-from openai import OpenAI
 import dspy
 
-load_dotenv()
-
-lm = dspy.LM("openai/gpt-4o-mini")
-
+lm = dspy.LM(
+    "ollama_chat/gemma3:4b",
+    api_base="http://localhost:11434",
+    api_key="",
+)
 dspy.configure(lm=lm)
 
-# A one-liner program: topic -> fun_fact
-get_fact = dspy.Predict("topic -> fun_fact")
-result = get_fact(topic="the Moon")
+qa = dspy.Predict("question -> answer")
 
-print("result:")
-print(result)
+result = qa(question="Why is the sky blue at noon but red at sunlight?")
 
-print("prompt:")
+print()
 dspy.inspect_history(n=1)
+print()
+
+print(f"answer:{result.answer}")
