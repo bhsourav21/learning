@@ -61,7 +61,7 @@ embedder = dspy.Embedder(
 
 # dspy.Embeddings is the *retriever* built on top of that embedder. It
 # embeds CORPUS once, here, and then answers queries from memory.
-retriever = dspy.Embeddings(corpus=CORPUS, embedder=embedder, k=3)
+retriever = dspy.Embeddings(corpus=CORPUS, embedder=embedder, k=2)
 
 def my_vector_search(query: str) -> list[str]:
     """Return the passages from CORPUS most similar to `query`."""

@@ -20,4 +20,4 @@ class MyProgram(dspy.Module):
         return out
 
 program = MyProgram()
-print(f"result:{program(a='I have 100 dollars. I spent 7 dollars. Whatis the remaining amount I have?')}")
+print(f"result:{program(a='I have 100 dollars. I spent 7 dollars. What is the remaining amount I have?')}")
