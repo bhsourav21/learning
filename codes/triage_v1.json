@@ -1,0 +1,94 @@
+{
+  "triage.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "augmented": true,
+        "email": "Could you change the display name on my profile from Dan to Daniel? Minor cosmetic thing, whenever you get a chance.",
+        "account_tier": "free",
+        "reasoning": "Customer is requesting a simple profile update, not indicative of a critical issue.",
+        "category": "account",
+        "urgency": 1,
+        "summary": "The customer wants to change their profile display name."
+      },
+      {
+        "augmented": true,
+        "email": "Just wanted to say the new reporting dashboard is excellent. It cut our weekly review from an hour to about ten minutes. Thank you.",
+        "account_tier": "pro",
+        "reasoning": "Not supplied for this particular example.",
+        "category": "other",
+        "urgency": 1,
+        "summary": "Not supplied for this particular example."
+      }
+    ],
+    "signature": {
+      "instructions": "Analyze the customer's support email, determine its category (billing, technical, account, or other), assess its urgency (1-5 based on business impact), and generate a short draft reply acknowledging the issue and suggesting the next step. Prioritize a concise and professional response, avoiding specific timelines or guarantees.",
+      "fields": [
+        {
+          "prefix": "Email:",
+          "description": "Raw body text of the customer's email"
+        },
+        {
+          "prefix": "Account Tier:",
+          "description": "${account_tier}"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Category:",
+          "description": "${category}"
+        },
+        {
+          "prefix": "Urgency:",
+          "description": "1 = can wait a week, 5 = page someone now"
+        },
+        {
+          "prefix": "Summary:",
+          "description": "One sentence, at most 20 words"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "reply.predict": {
+    "traces": [],
+    "train": [],
+    "demos": [],
+    "signature": {
+      "instructions": "Write a short first reply to a customer support email.\n\nAcknowledge the specific problem, state the next concrete step, and give\nno time estimate you cannot keep. Never promise a refund or a fix date.",
+      "fields": [
+        {
+          "prefix": "Email:",
+          "description": "${email}"
+        },
+        {
+          "prefix": "Category:",
+          "description": "${category}"
+        },
+        {
+          "prefix": "Summary:",
+          "description": "${summary}"
+        },
+        {
+          "prefix": "Reasoning:",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Draft Reply:",
+          "description": "Under 120 words, plain and warm"
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.12",
+      "dspy": "3.2.1",
+      "cloudpickle": "3.1"
+    }
+  }
+}
