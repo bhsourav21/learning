@@ -1,0 +1,16 @@
+{"email": "I was charged twice for the same monthly plan on the 3rd. My statement shows two identical charges of 49 dollars. Please refund the duplicate.", "tier": "pro", "category": "billing", "urgency": 3}
+{"email": "Hi, could you send me a copy of my invoice for last month? I need it for my expense report. No rush at all.", "tier": "free", "category": "billing", "urgency": 2}
+{"email": "Our annual renewal invoice lists 250 seats but our contract is for 180. Finance cannot process payment until this is corrected and our access expires Friday.", "tier": "enterprise", "category": "billing", "urgency": 5}
+{"email": "My credit card expires next month. Where do I go to update the card on file so my subscription does not lapse?", "tier": "pro", "category": "billing", "urgency": 2}
+{"email": "All calls to the v2 orders endpoint have been returning 500 errors since roughly 14:00 UTC. This is blocking checkout across our production storefront.", "tier": "enterprise", "category": "technical", "urgency": 5}
+{"email": "Small thing, but in dark mode the settings sidebar text is dark grey on a dark background so I cannot read the labels. Chrome on Windows.", "tier": "free", "category": "technical", "urgency": 2}
+{"email": "Our webhooks stopped firing about six hours ago. No delivery attempts show in the log and around 400 orders have not synced to our warehouse system.", "tier": "pro", "category": "technical", "urgency": 4}
+{"email": "When I export my contacts to CSV the file cuts off at 1000 rows even though I have about 4300 contacts. Tried Safari and Firefox with the same result.", "tier": "free", "category": "technical", "urgency": 3}
+{"email": "I am locked out of my account. I replaced my phone and no longer have the authenticator app, and the backup codes were on the old device.", "tier": "pro", "category": "account", "urgency": 3}
+{"email": "We are onboarding 40 new staff on Monday and need SSO provisioning configured against our Okta tenant before then. Who can help set this up?", "tier": "enterprise", "category": "account", "urgency": 4}
+{"email": "Could you change the display name on my profile from Dan to Daniel? Minor cosmetic thing, whenever you get a chance.", "tier": "free", "category": "account", "urgency": 1}
+{"email": "An employee left the company three weeks ago but still appears as an admin with full billing access. Please revoke their access immediately.", "tier": "pro", "category": "account", "urgency": 5}
+{"email": "Feature request: it would be great to have keyboard shortcuts for switching between projects. Not urgent, just something I would love to see.", "tier": "free", "category": "other", "urgency": 1}
+{"email": "Our security team needs your most recent SOC 2 Type II report for a vendor review we are completing this quarter. Where can I request it?", "tier": "enterprise", "category": "other", "urgency": 2}
+{"email": "Just wanted to say the new reporting dashboard is excellent. It cut our weekly review from an hour to about ten minutes. Thank you.", "tier": "pro", "category": "other", "urgency": 1}
+{"email": "Quick question before we commit to a paid plan: which region is customer data stored in, and do you offer EU data residency?", "tier": "free", "category": "other", "urgency": 2}
