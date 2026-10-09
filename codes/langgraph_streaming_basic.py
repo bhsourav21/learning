@@ -37,7 +37,7 @@ graph.add_edge("node2", "node3")
 graph.add_edge("node3", "node4")
 graph.add_edge("node4", "node5")
 graph.add_edge("node5", "node6")
-graph.add_edge("node6", END)
+graph.add_edge("node6", END)    
 
 app = graph.compile()
 
