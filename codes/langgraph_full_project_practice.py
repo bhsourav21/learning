@@ -71,23 +71,33 @@ cfg2 = {
     }
 }
 
-def run_case(label, payload, cfg, approve=True):
-    """Invoke the graph, and if it paused for a human, answer and resume."""
+def ask_terminal(question: str) -> bool:
+    """Put the interrupt's question to the real human at the keyboard."""
+    while True:
+        reply = input(f"\n{question}\nApprove? [True/False]: ").strip().lower()
+        if reply in ("true", "t", "yes", "y"):
+            return True
+        if reply in ("false", "f", "no", "n"):
+            return False
+        print("  Please type True or False.")
+
+def run_case(label, payload, cfg):
+    """Invoke the graph, and if it paused for a human, ask and resume."""
     out = app.invoke(payload, cfg)
 
     # A graph that hit interrupt() returns a "__interrupt__" key instead of
     # finishing. Its value is a LIST of Interrupt objects (a node can raise
     # more than one), each carrying the payload we passed to interrupt().
     if "__interrupt__" in out:
+        answer = None
         for itr in out["__interrupt__"]:
-            print(f"{label}: PAUSED -> {itr.value['question']}")
-        print(f"{label}: resuming with approve={approve}")
+            answer = ask_terminal(itr.value["question"])
 
         # Command(resume=X) makes X the RETURN VALUE of the interrupt() call
-        # inside ask_human, so the node carries on from exactly where it
-        # stopped. cfg is required: thread_id is what identifies which
-        # paused run to resume, which is why a checkpointer is mandatory.
-        out = app.invoke(Command(resume=approve), cfg)
+        # inside ask_human, so the node carries on from where it stopped.
+        # cfg is required: thread_id identifies WHICH paused run to resume,
+        # which is why a checkpointer is mandatory for this to work.
+        out = app.invoke(Command(resume=answer), cfg)
 
     print(f"{label}: {out['decision']}")
     return out
@@ -95,10 +105,4 @@ def run_case(label, payload, cfg, approve=True):
 out1 = run_case("case1", {"amount": 120, "memo": "fun",
                           "policy_result": "", "decision": ""}, cfg1)
 out2 = run_case("case2", {"amount": 900, "memo": "travel",
-                          "policy_result": "", "decision": ""}, cfg2, approve=True)
-
-
-
-
-
-
+                          "policy_result": "", "decision": ""}, cfg2)
