@@ -34,3 +34,8 @@ dependencies = [
     "tokenizers>=0.22.0,<=0.23.0",
     "unstructured[md]>=0.18.3",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
